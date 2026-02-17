@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { HiChevronDown } from "react-icons/hi";
 import {
@@ -327,11 +327,89 @@ const itemRight = {
   show: { opacity: 1, x: 0, transition: { duration: 0.4 } },
 };
 
+// ── Rain effect ─────────────────────────────────────────────
+
+function Rain() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animationId: number;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = document.documentElement.scrollHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    interface Drop {
+      x: number;
+      y: number;
+      length: number;
+      speed: number;
+      opacity: number;
+    }
+
+    const drops: Drop[] = Array.from({ length: 120 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      length: 15 + Math.random() * 25,
+      speed: 4 + Math.random() * 6,
+      opacity: 0.08 + Math.random() * 0.15,
+    }));
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const pageHeight = document.documentElement.scrollHeight;
+      if (canvas.height !== pageHeight) {
+        canvas.height = pageHeight;
+      }
+
+      for (const drop of drops) {
+        ctx.beginPath();
+        ctx.moveTo(drop.x, drop.y);
+        ctx.lineTo(drop.x, drop.y + drop.length);
+        ctx.strokeStyle = `rgba(140, 160, 255, ${drop.opacity})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        drop.y += drop.speed;
+        if (drop.y > canvas.height) {
+          drop.y = -drop.length;
+          drop.x = Math.random() * canvas.width;
+        }
+      }
+
+      animationId = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="pointer-events-none fixed inset-0 z-0"
+    />
+  );
+}
+
 // ── Page ────────────────────────────────────────────────────
 
 export default function About() {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-24">
+    <div className="relative mx-auto max-w-5xl px-6 py-24">
+      <Rain />
       {/* Bio — left aligned */}
       <motion.section
         initial={{ opacity: 0, x: -30 }}
@@ -343,8 +421,8 @@ export default function About() {
           About <span className="gradient-text">Me</span>
         </h1>
         <p className="text-lg leading-relaxed text-muted">
-          Hi! I&apos;m Josh, a startup founder currently based in the Bay Area
-          and student at the University of Michigan. I love everything tech, but
+          Hi! I&apos;m Josh, a startup founder originally from Seattle but currently based in the Bay Area. 
+          Also a CSE student at the University of Michigan. I love everything tech, but
           my interests lie particularly in AI/ML, Database Engineering, Computer
           Vision, Robotics, SaaS, and crypto. Outside of work, I like finding
           new local restaurants, running, raving, DJing, and hiking. Feel free

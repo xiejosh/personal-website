@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { IconType } from "react-icons";
 
 const roles = [
   "CS student",
+  "DJ",
   "software engineer",
   "avid gamer",
   "collegiate badminton player",
@@ -63,75 +64,196 @@ function RotatingRole() {
   );
 }
 
-function ShootingStar({ delay, startX }: { delay: number; startX: string }) {
+interface Particle {
+  id: number;
+  angle: number;
+  distance: number;
+  size: number;
+  color: string;
+}
+
+function Explosion({ x, y, onComplete }: { x: number; y: number; onComplete: () => void }) {
+  const [particles] = useState<Particle[]>(() =>
+    Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      angle: (i * 30) + (Math.random() * 20 - 10),
+      distance: 40 + Math.random() * 60,
+      size: 2 + Math.random() * 4,
+      color: ["#fff", "#fbbf24", "#f97316", "#ef4444", "#a78bfa"][Math.floor(Math.random() * 5)],
+    }))
+  );
+
   return (
-    <motion.div
-      className="pointer-events-none absolute"
-      style={{
-        left: startX,
-        top: "-20px",
-        rotate: "135deg",
-      }}
-      initial={{ x: 0, y: 0, opacity: 0 }}
-      animate={{
-        x: "-100vw",
-        y: "100vh",
-        opacity: [0, 0.6, 0.6, 0],
-      }}
-      transition={{
-        duration: 2,
-        delay,
-        repeat: Infinity,
-        repeatDelay: 1 + Math.random() * 3,
-        ease: "easeIn",
-      }}
-    >
-      {/* Head */}
-      <div
-        className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full"
+    <div className="pointer-events-none fixed z-50" style={{ left: x, top: y }}>
+      {particles.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full"
+          style={{
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            boxShadow: `0 0 6px ${p.color}, 0 0 12px ${p.color}`,
+            left: -p.size / 2,
+            top: -p.size / 2,
+          }}
+          initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+          animate={{
+            x: Math.cos((p.angle * Math.PI) / 180) * p.distance,
+            y: Math.sin((p.angle * Math.PI) / 180) * p.distance,
+            opacity: 0,
+            scale: 0.2,
+          }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          onAnimationComplete={p.id === 0 ? onComplete : undefined}
+        />
+      ))}
+      {/* Flash */}
+      <motion.div
+        className="absolute rounded-full"
         style={{
-          width: 6,
-          height: 6,
-          background: "rgba(255,255,255,0.7)",
-          boxShadow: "0 0 6px rgba(255,255,255,0.5), 0 0 12px rgba(255,255,255,0.2)",
+          width: 20,
+          height: 20,
+          left: -10,
+          top: -10,
+          background: "radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(251,191,36,0.4) 50%, transparent 70%)",
         }}
+        initial={{ scale: 0.5, opacity: 1 }}
+        animate={{ scale: 3, opacity: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
       />
-      {/* Tail */}
-      <div
-        style={{
-          width: "160px",
-          height: "2px",
-          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 30%, rgba(255,255,255,0.3) 70%, rgba(255,255,255,0.6) 100%)",
-        }}
-      />
-    </motion.div>
+    </div>
+  );
+}
+
+function ShootingStar({ delay, startX }: { delay: number; startX: string }) {
+  const [exploded, setExploded] = useState(false);
+  const [explosionPos, setExplosionPos] = useState<{ x: number; y: number } | null>(null);
+  const [cycleKey, setCycleKey] = useState(0);
+
+  const handleHover = useCallback((e: React.MouseEvent) => {
+    if (exploded) return;
+    setExploded(true);
+    setExplosionPos({ x: e.clientX, y: e.clientY });
+  }, [exploded]);
+
+  const handleExplosionComplete = useCallback(() => {
+    setExplosionPos(null);
+    // Respawn the shooting star after a short delay
+    setTimeout(() => {
+      setExploded(false);
+      setCycleKey((k) => k + 1);
+    }, 1500);
+  }, []);
+
+  return (
+    <>
+      <AnimatePresence>
+        {!exploded && (
+          <motion.div
+            key={cycleKey}
+            className="absolute cursor-crosshair"
+            style={{
+              left: startX,
+              top: "-20px",
+              rotate: "135deg",
+              padding: "10px",
+            }}
+            initial={{ x: 0, y: 0, opacity: 0 }}
+            animate={{
+              x: "-100vw",
+              y: "100vh",
+              opacity: [0, 0.6, 0.6, 0],
+            }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: 4,
+              delay: cycleKey === 0 ? delay : 0,
+              repeat: Infinity,
+              repeatDelay: 2 + Math.random() * 4,
+              ease: "easeIn",
+            }}
+            onMouseEnter={handleHover}
+          >
+            {/* Head */}
+            <div
+              className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full"
+              style={{
+                width: 6,
+                height: 6,
+                background: "rgba(255,255,255,0.7)",
+                boxShadow: "0 0 6px rgba(255,255,255,0.5), 0 0 12px rgba(255,255,255,0.2)",
+              }}
+            />
+            {/* Tail */}
+            <div
+              style={{
+                width: "160px",
+                height: "2px",
+                background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 30%, rgba(255,255,255,0.3) 70%, rgba(255,255,255,0.6) 100%)",
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {explosionPos && (
+        <Explosion x={explosionPos.x} y={explosionPos.y} onComplete={handleExplosionComplete} />
+      )}
+    </>
   );
 }
 
 function NeonSquare({ delay, x, y, size, color }: { delay: number; x: string; y: string; size: number; color: string }) {
+  const [popped, setPopped] = useState(false);
+  const [explosionPos, setExplosionPos] = useState<{ x: number; y: number } | null>(null);
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (popped) return;
+    setPopped(true);
+    setExplosionPos({ x: e.clientX, y: e.clientY });
+  }, [popped]);
+
+  const handleExplosionComplete = useCallback(() => {
+    setExplosionPos(null);
+    setTimeout(() => setPopped(false), 2000);
+  }, []);
+
   return (
-    <motion.div
-      className="absolute rounded-md"
-      style={{
-        left: x,
-        top: y,
-        width: size,
-        height: size,
-        border: `1.5px solid ${color}`,
-        boxShadow: `0 0 8px ${color}, inset 0 0 4px ${color}`,
-      }}
-      animate={{
-        y: [0, -15, 0],
-        rotate: [0, 8, -8, 0],
-        opacity: [0.15, 0.35, 0.15],
-      }}
-      transition={{
-        duration: 5 + Math.random() * 2,
-        delay,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-    />
+    <>
+      <AnimatePresence>
+        {!popped && (
+          <motion.div
+            className="absolute z-20 cursor-pointer rounded-md"
+            style={{
+              left: x,
+              top: y,
+              width: size,
+              height: size,
+              border: `1.5px solid ${color}`,
+              boxShadow: `0 0 8px ${color}, inset 0 0 4px ${color}`,
+            }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{
+              scale: 1,
+              y: [0, -15, 0],
+              rotate: [0, 8, -8, 0],
+              opacity: [0.15, 0.35, 0.15],
+            }}
+            exit={{ scale: 1.5, opacity: 0 }}
+            transition={{
+              scale: { duration: 0.6, ease: "easeOut" },
+              opacity: { duration: 5 + Math.random() * 2, delay, repeat: Infinity, ease: "easeInOut" },
+              y: { duration: 5 + Math.random() * 2, delay, repeat: Infinity, ease: "easeInOut" },
+              rotate: { duration: 5 + Math.random() * 2, delay, repeat: Infinity, ease: "easeInOut" },
+            }}
+            onClick={handleClick}
+          />
+        )}
+      </AnimatePresence>
+      {explosionPos && (
+        <Explosion x={explosionPos.x} y={explosionPos.y} onComplete={handleExplosionComplete} />
+      )}
+    </>
   );
 }
 
@@ -153,7 +275,6 @@ export default function Home() {
       <NeonSquare delay={0} x="8%" y="18%" size={80} color="rgba(250,204,21,0.35)" />
       <NeonSquare delay={1.5} x="55%" y="65%" size={120} color="rgba(74,222,128,0.3)" />
       <NeonSquare delay={0.8} x="78%" y="10%" size={60} color="rgba(248,113,113,0.35)" />
-
       {/* Shooting stars */}
       <ShootingStar delay={0} startX="30%" />
       <ShootingStar delay={1.5} startX="70%" />
