@@ -66,3 +66,84 @@ body {
     linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
 }
+
+/* === Hacker glitch background === */
+.hacker-bg {
+  position: relative;
+}
+
+/* CRT scanlines */
+.hacker-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 255, 65, 0.015) 3px,
+    rgba(0, 255, 65, 0.015) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Slow green scanline sweep */
+.hacker-bg::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, transparent 10%, rgba(0, 255, 65, 0.08) 40%, rgba(0, 255, 65, 0.12) 50%, rgba(0, 255, 65, 0.08) 60%, transparent 90%);
+  animation: hacker-sweep 5s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes hacker-sweep {
+  0% { transform: translateY(-10px); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Occasional horizontal tear lines */
+@keyframes hacker-tear {
+  0%, 100% { opacity: 0; }
+  4% { opacity: 1; top: 18%; height: 1px; }
+  5% { opacity: 0; }
+  22% { opacity: 0; }
+  23% { opacity: 0.8; top: 43%; height: 2px; }
+  24% { opacity: 0; }
+  51% { opacity: 0; }
+  52% { opacity: 1; top: 71%; height: 1px; }
+  53% { opacity: 0; }
+  78% { opacity: 0; }
+  79% { opacity: 0.6; top: 32%; height: 1px; }
+  80% { opacity: 0; }
+}
+
+.hacker-tear {
+  position: fixed;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.2) 20%, rgba(0, 255, 65, 0.35) 50%, rgba(0, 255, 65, 0.2) 80%, transparent);
+  animation: hacker-tear 10s steps(1) infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hacker-tear:nth-child(2) {
+  animation-delay: 3s;
+  animation-duration: 8s;
+}
+
+/* Faint green vignette at edges */
+.hacker-vignette {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 20, 5, 0.4) 100%);
+  pointer-events: none;
+  z-index: 1;
+}

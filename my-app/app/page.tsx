@@ -8,6 +8,7 @@ import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { HiArrowRight } from "react-icons/hi";
 import { TbBrain } from "react-icons/tb";
 import { IconType } from "react-icons";
+import NowPlaying from "./components/NowPlaying";
 
 const roles = [
   "CS student",
@@ -339,10 +340,19 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.25 }}
-            className="mb-10 text-xl text-muted sm:text-2xl"
+            className="mb-6 text-xl text-muted sm:text-2xl"
           >
             also <RotatingRole />
           </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.28 }}
+            className="mb-10"
+          >
+            <NowPlaying />
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}

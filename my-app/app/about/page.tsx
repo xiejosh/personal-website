@@ -399,7 +399,7 @@ function Rain() {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-0"
+      className="pointer-events-none fixed inset-0 -z-10"
     />
   );
 }
