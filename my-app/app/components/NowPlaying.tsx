@@ -42,7 +42,7 @@ function Waveform({ active }: { active: boolean }) {
               ? {
                   height: [heights[i] * 0.4, heights[i], heights[i] * 0.6, heights[i] * 0.9, heights[i] * 0.4],
                 }
-              : { height: heights[i] * 0.35 }
+              : { height: 4 }
           }
           transition={
             active
