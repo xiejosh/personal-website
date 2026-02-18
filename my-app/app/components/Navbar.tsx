@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,8 +21,8 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-card-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          <span className="gradient-text">JX</span>
+        <Link href="/" className="flex items-center">
+          <Image src="/logo.png" alt="Logo" width={30} height={30} className="object-contain" />
         </Link>
 
         {/* Desktop links */}
