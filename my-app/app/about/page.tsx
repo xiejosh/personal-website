@@ -421,7 +421,7 @@ export default function About() {
           About <span className="gradient-text">Me</span>
         </h1>
         <p className="text-lg leading-relaxed text-muted">
-          hi, i&apos;m josh! i&apos;m a startup founder originally from seattle but currently based in the bay area.
+          hi, i&apos;m josh! i&apos;m originally from seattle but currently based in the bay area.
           also a cse student at umich if that matters. i love everything tech, but specifically ai/ml, db engineering,
           cv, robotics, saas, and crypto. i like eating, raving, running, djing, hiking, and much more, as i&apos;ll
           literally try anything if it&apos;s in front of my face. connect{" "}
