@@ -148,7 +148,7 @@ const education = [
       {
         label: "Activities & Extracurriculars",
         items: [
-          "Alpha Kappa Psi Professional Business Fraternity",
+          "Alpha Kappa Psi Professional Business Fraternity - VP Technology",
           "Division III Badminton",
           "Michigan Data Science Team",
           "Sigma Nu Fraternity",

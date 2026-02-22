@@ -142,6 +142,30 @@ function ShatteredHole({
 
 const projects = [
   {
+    title: "Interpreter - Return of the Agents Hackathon Winner \u{1F3C6}",
+    description:
+      "Audio translation everywhere and anywhere — breaking the web's language barrier by translating the audio of any tab in real-time.",
+    link: "https://github.com/shlawgathon/interpreter",
+    linkLabel: "GitHub",
+    type: "github" as const,
+  },
+  {
+    title: "AI Twitch Chat",
+    description:
+      "An agent-simulated Twitch chat. Stream to tens of thousands of fans with a click of a button.",
+    link: "https://github.com/xiejosh/ai-twitch-chat",
+    linkLabel: "GitHub",
+    type: "github" as const,
+  },
+  {
+    title: "Hinge Match Text Responder",
+    description:
+      "An agent to automatically respond to your romantic interests over iMessage.",
+    link: "https://github.com/xiejosh/auto-text-responder",
+    linkLabel: "GitHub",
+    type: "github" as const,
+  },
+  {
     title: "Rush Website",
     description:
       "Fully-managed rush website for Alpha Kappa Psi – Phi Chapter. Includes login, permission, deliberation features. Successful launch W26, peaking at 400 concurrent users.",
