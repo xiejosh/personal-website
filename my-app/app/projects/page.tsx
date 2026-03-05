@@ -142,7 +142,31 @@ function ShatteredHole({
 
 const projects = [
   {
-    title: "Interpreter - Return of the Agents Hackathon Winner \u{1F3C6}",
+    title: "Agentify - Mistral AI Hackathon Submission",
+    description:
+      "Basically an OS-level Browser Use. Complete tasks anywhere on your system with a single prompt — the future of task automation.",
+    link: "https://github.com/shlawgathon/agenticify",
+    linkLabel: "GitHub",
+    type: "github" as const,
+  },
+  {
+    title: "Cleanly - Ocean Tech Hackathon Winner 🏆",
+    description:
+      "View and classify trash through image recognition at the click of a button! Easily plan your ocean cleanup initiatives before you even depart from shore.",
+    link: "https://github.com/xiejosh/cleanly",
+    linkLabel: "GitHub",
+    type: "github" as const,
+  },
+  {
+    title: "Friendly - Top 4 at AWS Autonomous Agents Hackathon 🏆",
+    description:
+      "Automatically find friends within your close network with shared interests at a click of a button — skip the awkward conversations and get straight into deep conversations about shared passions that go deeper than \"how was your day?\".",
+    link: "https://github.com/shlawgathon/friendly",
+    linkLabel: "GitHub",
+    type: "github" as const,
+  },
+  {
+    title: "Interpreter - Return of the Agents Hackathon Winner 🏆",
     description:
       "Audio translation everywhere and anywhere — breaking the web's language barrier by translating the audio of any tab in real-time.",
     link: "https://github.com/shlawgathon/interpreter",
