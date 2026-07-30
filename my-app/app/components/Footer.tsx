@@ -4,7 +4,7 @@ import { HiMail } from "react-icons/hi";
 export default function Footer() {
   return (
     <footer className="border-t border-card-border">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
+      <div className="flex w-full flex-col items-center justify-between gap-4 px-[max(1rem,2vw)] py-8 sm:flex-row">
         <p className="text-sm text-muted">
           &copy; {new Date().getFullYear()} Josh Xie
         </p>

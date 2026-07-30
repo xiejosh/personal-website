@@ -12,7 +12,6 @@ import {
   FaReact,
   FaAngular,
   FaNodeJs,
-  FaAws,
   FaDatabase,
 } from "react-icons/fa";
 import {
@@ -36,7 +35,6 @@ import {
   SiAmazonecs,
   SiAmazonsqs,
 } from "react-icons/si";
-import { TbCursorText } from "react-icons/tb";
 import { IconType } from "react-icons";
 
 // ── Skill data ──────────────────────────────────────────────
@@ -152,32 +150,6 @@ const education = [
           "Division III Badminton",
           "Michigan Data Science Team",
           "Sigma Nu Fraternity",
-        ],
-      },
-    ],
-  },
-  {
-    school: "Newport Senior High School",
-    degree: "High School Diploma",
-    period: "Sep 2018 – Jun 2022",
-    sections: [
-      {
-        label: "Academics",
-        items: [
-          "AP Computer Science",
-          "1500 SAT",
-          "USACO Platinum",
-        ],
-      },
-      {
-        label: "Activities & Extracurriculars",
-        items: [
-          "Student Government – Treasurer",
-          "Football – Captain",
-          "Competitive Badminton – Ranked Top 40 in U17 BS, BD, XD",
-          "Cross Country",
-          "Track & Field",
-          "Swim & Dive",
         ],
       },
     ],
@@ -312,18 +284,8 @@ const containerLeft = {
   show: { transition: { staggerChildren: 0.07 } },
 };
 
-const containerRight = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
-};
-
 const itemLeft = {
   hidden: { opacity: 0, x: -30 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.4 } },
-};
-
-const itemRight = {
-  hidden: { opacity: 0, x: 30 },
   show: { opacity: 1, x: 0, transition: { duration: 0.4 } },
 };
 
@@ -421,10 +383,8 @@ export default function About() {
           About <span className="gradient-text">Me</span>
         </h1>
         <p className="text-lg leading-relaxed text-muted">
-          hi, i&apos;m josh! i&apos;m originally from seattle but currently based in the bay area.
-          also a cse student at umich if that matters. i love everything tech, but specifically ai/ml, db engineering,
-          cv, robotics, saas, and crypto. i like eating, raving, running, djing, hiking, and much more, as i&apos;ll
-          literally try anything if it&apos;s in front of my face. connect{" "}
+          hi, i&apos;m josh, and i&apos;m currently based in seattle! i love everything tech, but specifically ai/ml, db engineering,
+          cv, robotics, saas, and crypto. i&apos;m also passionate for music, spending a majority of my free time producing or djing. besides from that, i also like eating, raving, running, hiking, and much more. connect{" "}
           <a
             href="https://www.linkedin.com/in/josh-xie/"
             target="_blank"
@@ -433,7 +393,7 @@ export default function About() {
           >
             here
           </a>
-          {" "}if you are a startup founder, a fellow rave goer, or in the bay area and want to meet up :)
+          {" "}if you are a startup founder, an investor, a fellow rave goer, or in the seattle area and want to meet up :)
         </p>
       </motion.section>
 

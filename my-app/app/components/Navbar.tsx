@@ -20,7 +20,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-card-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+      <div className="flex w-full items-center justify-between px-[max(1rem,2vw)] py-4">
         <Link href="/" className="flex items-center">
           <Image src="/logo.png" alt="Logo" width={30} height={30} className="object-contain" />
         </Link>
