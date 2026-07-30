@@ -59,6 +59,16 @@ body {
   box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
 }
 
+/* Terminal typing cursor */
+@keyframes cursor-blink {
+  0%, 54% { opacity: 1; }
+  55%, 100% { opacity: 0; }
+}
+
+.typing-cursor {
+  animation: cursor-blink 0.9s steps(1) infinite;
+}
+
 /* Grid background pattern */
 .grid-bg {
   background-image:
