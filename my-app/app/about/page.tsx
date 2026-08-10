@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { HiChevronDown } from "react-icons/hi";
 import {
@@ -36,6 +36,8 @@ import {
   SiAmazonsqs,
 } from "react-icons/si";
 import { IconType } from "react-icons";
+import AsciiBackground from "../components/AsciiBackground";
+import { Typewriter, BootReveal, TerminalWindow } from "../components/Boot";
 
 // ── Skill data ──────────────────────────────────────────────
 
@@ -162,7 +164,7 @@ function SkillDropdown({ category }: { category: SkillCategory }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-xl border border-card-border bg-card-bg">
+    <div className="rounded-lg border border-card-border bg-card-bg/70 backdrop-blur-sm">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between px-5 py-4 text-left text-base font-semibold transition-colors hover:text-accent"
@@ -192,7 +194,7 @@ function SkillDropdown({ category }: { category: SkillCategory }) {
                   href={skill.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex flex-col items-center gap-2 rounded-lg border border-card-border bg-background p-4 transition-all hover:border-accent/40 hover:shadow-md hover:shadow-accent/5"
+                  className="group flex flex-col items-center gap-2 rounded-md border border-card-border bg-background/80 p-4 transition-all hover:border-accent/40 hover:shadow-md hover:shadow-accent/5"
                 >
                   {skill.logo ? (
                     <Image
@@ -264,11 +266,11 @@ function EducationDropdown({ label, items }: { label: string; items: string[] })
 
 function EducationCard({ edu }: { edu: { school: string; degree: string; period: string; sections: { label: string; items: string[] }[] } }) {
   return (
-    <div className="rounded-xl border border-card-border bg-card-bg">
+    <div className="rounded-lg border border-card-border bg-card-bg/70 backdrop-blur-sm">
       <div className="p-5">
         <h3 className="text-base font-semibold">{edu.school}</h3>
         <p className="text-base text-accent">{edu.degree}</p>
-        <p className="mt-1 text-sm text-muted">{edu.period}</p>
+        <p className="mt-1 text-sm text-muted">[{edu.period}]</p>
       </div>
       {edu.sections.map((section) => (
         <EducationDropdown key={section.label} label={section.label} items={section.items} />
@@ -277,165 +279,65 @@ function EducationCard({ edu }: { edu: { school: string; degree: string; period:
   );
 }
 
-// ── Stagger animation wrapper ───────────────────────────────
-
-const containerLeft = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
-};
-
-const itemLeft = {
-  hidden: { opacity: 0, x: -30 },
-  show: { opacity: 1, x: 0, transition: { duration: 0.4 } },
-};
-
-// ── Rain effect ─────────────────────────────────────────────
-
-function Rain() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let animationId: number;
-
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = document.documentElement.scrollHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    interface Drop {
-      x: number;
-      y: number;
-      length: number;
-      speed: number;
-      opacity: number;
-    }
-
-    const drops: Drop[] = Array.from({ length: 120 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      length: 15 + Math.random() * 25,
-      speed: 4 + Math.random() * 6,
-      opacity: 0.08 + Math.random() * 0.15,
-    }));
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const pageHeight = document.documentElement.scrollHeight;
-      if (canvas.height !== pageHeight) {
-        canvas.height = pageHeight;
-      }
-
-      for (const drop of drops) {
-        ctx.beginPath();
-        ctx.moveTo(drop.x, drop.y);
-        ctx.lineTo(drop.x, drop.y + drop.length);
-        ctx.strokeStyle = `rgba(140, 160, 255, ${drop.opacity})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        drop.y += drop.speed;
-        if (drop.y > canvas.height) {
-          drop.y = -drop.length;
-          drop.x = Math.random() * canvas.width;
-        }
-      }
-
-      animationId = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => {
-      cancelAnimationFrame(animationId);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="pointer-events-none fixed inset-0 -z-10"
-    />
-  );
-}
-
 // ── Page ────────────────────────────────────────────────────
 
 export default function About() {
   return (
-    <div className="relative mx-auto max-w-5xl px-6 py-24">
-      <Rain />
-      {/* Bio — left aligned */}
-      <motion.section
-        initial={{ opacity: 0, x: -30 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-20"
-      >
-        <h1 className="mb-6 text-3xl font-bold sm:text-4xl">
-          About <span className="gradient-text">Me</span>
-        </h1>
-        <p className="text-lg leading-relaxed text-muted">
-          hi, i&apos;m josh, and i&apos;m currently based in seattle! i love everything tech, but specifically ai/ml, db engineering,
-          cv, robotics, saas, and crypto. i&apos;m also passionate for music, spending a majority of my free time producing or djing. besides from that, i also like eating, raving, running, hiking, and much more. connect{" "}
-          <a
-            href="https://www.linkedin.com/in/josh-xie/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-accent transition-colors hover:text-accent-secondary"
-          >
-            here
-          </a>
-          {" "}if you are a startup founder, an investor, a fellow rave goer, or in the seattle area and want to meet up :)
+    <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden px-[max(1rem,2vw)] py-16">
+      <AsciiBackground showCompanies={false} />
+
+      <div className="relative z-10">
+        {/* Bio */}
+        <p className="mb-4 text-sm text-accent">
+          <Typewriter text="$ cat about.md" delay={100} />
         </p>
-      </motion.section>
+        <TerminalWindow title="about.md" delay={700} className="mb-16 max-w-3xl">
+          <div className="p-5">
+            <h1 className="mb-4 text-3xl font-bold sm:text-4xl">
+              about <span className="gradient-text">me</span>
+            </h1>
+            <p className="text-lg leading-relaxed text-muted">
+              hi, i&apos;m josh, and i&apos;m currently based in seattle! i love everything tech, but specifically ai/ml, db engineering,
+              cv, robotics, saas, and crypto. i&apos;m also passionate for music, spending a majority of my free time producing or djing. besides from that, i also like eating, raving, running, hiking, and much more. connect{" "}
+              <a
+                href="https://www.linkedin.com/in/josh-xie/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-accent transition-colors hover:text-accent-secondary"
+              >
+                here
+              </a>
+              {" "}if you are a startup founder, an investor, a fellow rave goer, or in the seattle area and want to meet up :)
+            </p>
+          </div>
+        </TerminalWindow>
 
-      {/* Education */}
-      <motion.section
-        variants={containerLeft}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-50px" }}
-        className="mb-20"
-      >
-        <h2 className="mb-6 text-2xl font-bold">Education</h2>
-        <div className="flex flex-col gap-4">
-          {education.map((edu, i) => (
-            <motion.div
-              key={i}
-              variants={itemLeft}
-            >
-              <EducationCard edu={edu} />
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
+        {/* Education */}
+        <section className="mb-16 max-w-3xl">
+          <h2 className="mb-6 text-2xl font-bold">
+            <Typewriter text="> education" delay={1000} />
+          </h2>
+          <BootReveal delay={1500} className="flex flex-col gap-4">
+            {education.map((edu, i) => (
+              <EducationCard key={i} edu={edu} />
+            ))}
+          </BootReveal>
+        </section>
 
-      {/* Skills */}
-      <motion.section
-        variants={containerLeft}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-50px" }}
-      >
-        <h2 className="mb-6 text-2xl font-bold">
-          Skills & Technologies
-        </h2>
-        <div className="flex flex-col gap-3">
-          {skillCategories.map((cat) => (
-            <motion.div key={cat.title} variants={itemLeft}>
-              <SkillDropdown category={cat} />
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
+        {/* Skills */}
+        <section className="max-w-3xl">
+          <h2 className="mb-6 text-2xl font-bold">
+            <Typewriter text="> skills & technologies" delay={1800} />
+          </h2>
+          <div className="flex flex-col gap-3">
+            {skillCategories.map((cat, i) => (
+              <BootReveal key={cat.title} delay={2400 + i * 150}>
+                <SkillDropdown category={cat} />
+              </BootReveal>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

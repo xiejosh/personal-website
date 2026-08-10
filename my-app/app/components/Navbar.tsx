@@ -8,10 +8,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { HiMenuAlt3, HiX } from "react-icons/hi";
 
 const links = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/projects", label: "Projects" },
-  { href: "/contact", label: "Contact" },
+  { href: "/", label: "~/home" },
+  { href: "/about", label: "~/about" },
+  { href: "/projects", label: "~/projects" },
+  { href: "/contact", label: "~/contact" },
 ];
 
 export default function Navbar() {

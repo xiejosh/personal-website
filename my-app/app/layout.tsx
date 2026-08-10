@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Mulish } from "next/font/google";
+import { Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
 
-const mulish = Mulish({
-  variable: "--font-mulish",
-  subsets: ["latin"],
-});
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
 });
 
@@ -33,11 +27,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${mulish.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${jetbrainsMono.variable} ${geistMono.variable} antialiased`}
       >
         <Navbar />
         <main className="min-h-screen pt-16">{children}</main>
-        <Footer />
       </body>
     </html>
   );

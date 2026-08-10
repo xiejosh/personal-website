@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
@@ -9,83 +9,9 @@ import { HiArrowRight } from "react-icons/hi";
 import { SiShopify } from "react-icons/si";
 import { IconType } from "react-icons";
 import AsciiBackground from "./components/AsciiBackground";
+import { Typewriter, BootReveal } from "./components/Boot";
 import NowPlaying from "./components/NowPlaying";
-
-// ── Terminal boot-up reveal ─────────────────────────────────
-// Text types out character-by-character like terminal output; each instance picks a
-// random speed (plus per-character jitter) for variety. The full text is rendered
-// invisibly underneath so the layout never shifts while typing.
-
-function Typewriter({
-  text,
-  delay = 0,
-  cps,
-  cursor = true,
-}: {
-  text: string;
-  delay?: number; // ms before typing starts
-  cps?: number; // chars per second; randomized per instance when omitted
-  cursor?: boolean;
-}) {
-  const prefersReducedMotion = useReducedMotion();
-  const [speed] = useState(() => cps ?? 16 + Math.random() * 18);
-  const [started, setStarted] = useState(false);
-  const [count, setCount] = useState(0);
-  const shownCount = prefersReducedMotion ? text.length : count;
-  const done = shownCount >= text.length;
-
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-    const t = setTimeout(() => setStarted(true), delay);
-    return () => clearTimeout(t);
-  }, [delay, prefersReducedMotion]);
-
-  useEffect(() => {
-    if (prefersReducedMotion || !started || count >= text.length) return;
-    const jitter = 0.5 + Math.random();
-    const t = setTimeout(() => setCount((c) => c + 1), (1000 / speed) * jitter);
-    return () => clearTimeout(t);
-  }, [prefersReducedMotion, started, count, speed, text.length]);
-
-  return (
-    <span className="relative inline-block" aria-label={text}>
-      <span aria-hidden className="invisible">{text}</span>
-      <span aria-hidden className="absolute inset-0 text-left">
-        {text.slice(0, shownCount)}
-        {started && !done && cursor && (
-          <span className="typing-cursor inline-block h-[1em] w-[0.55em] translate-y-[0.12em] bg-current" />
-        )}
-      </span>
-    </span>
-  );
-}
-
-// Non-text elements (images, buttons, dots) can't be "typed", so they appear abruptly
-// at their slot in the boot sequence, like a terminal rendering a block element.
-function BootReveal({
-  delay,
-  className,
-  inline = false,
-  children,
-}: {
-  delay: number;
-  className?: string;
-  inline?: boolean;
-  children?: React.ReactNode;
-}) {
-  const prefersReducedMotion = useReducedMotion();
-  const [shown, setShown] = useState(false);
-  const visible = shown || prefersReducedMotion;
-
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-    const t = setTimeout(() => setShown(true), delay);
-    return () => clearTimeout(t);
-  }, [delay, prefersReducedMotion]);
-
-  const Tag = inline ? "span" : "div";
-  return <Tag className={`${visible ? "" : "invisible"} ${className ?? ""}`}>{children}</Tag>;
-}
+import Terminal from "./components/Terminal";
 
 const roles = [
   "DJ",
@@ -161,7 +87,7 @@ export default function Home() {
         <div className="flex-1 text-left">
           {/* Headshot */}
           <BootReveal delay={100} className="mb-8">
-            <div className="relative h-56 w-56 overflow-hidden rounded-full border-2 border-card-border glow">
+            <div className="relative h-56 w-56 overflow-hidden rounded-2xl border-2 border-card-border glow">
               <Image
                 src="/headshot.png"
                 alt="Josh Xie"
@@ -172,56 +98,54 @@ export default function Home() {
             </div>
           </BootReveal>
 
-          <p className="mb-4 font-mono text-sm text-accent">
-            <Typewriter text="Hi, my name is" delay={250} />
-          </p>
-
           <h1 className="mb-2 text-5xl font-bold tracking-tight sm:text-7xl">
-            <Typewriter text="Josh Xie" delay={900} cps={10} />
+            <Typewriter text="Josh Xie" delay={400} cps={10} />
           </h1>
 
           <h2 className="mb-2 text-2xl font-semibold text-muted sm:text-3xl">
-            <Typewriter text="building @ Shopify" delay={1800} />
+            <Typewriter text="> building @ Shopify" delay={1300} />
           </h2>
 
           <p className="mb-6 text-xl text-muted sm:text-2xl">
-            <Typewriter text="also" delay={2700} />{" "}
-            <BootReveal inline delay={3000}>
+            <Typewriter text="> also" delay={2200} />{" "}
+            <BootReveal inline delay={2500}>
               <RotatingRole />
             </BootReveal>
           </p>
 
-          <BootReveal delay={3100} className="mb-10">
+          <BootReveal delay={2600} className="mb-8">
             <NowPlaying />
           </BootReveal>
 
-          <BootReveal delay={3250} className="flex items-center gap-4">
+          <BootReveal delay={2750} className="flex items-center gap-4">
             <Link
               href="/about"
-              className="group flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-medium text-white transition-all hover:bg-accent-secondary hover:shadow-lg hover:shadow-accent/20"
+              className="group flex items-center gap-2 rounded-md border border-accent/60 bg-accent/10 px-6 py-3 text-sm font-medium text-accent transition-all hover:bg-accent hover:text-white hover:shadow-lg hover:shadow-accent/20"
             >
-              <Typewriter text="Learn more about me" delay={3300} cps={30} />
+              <span aria-hidden>[</span>
+              <Typewriter text="learn more about me" delay={2800} cps={30} />
               <HiArrowRight className="transition-transform group-hover:translate-x-1" />
+              <span aria-hidden>]</span>
             </Link>
 
             <div className="flex gap-3">
-              <BootReveal inline delay={3650}>
+              <BootReveal inline delay={3100}>
                 <a
                   href="https://github.com/xiejosh"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block rounded-full border border-card-border p-3 text-muted transition-all hover:border-accent/50 hover:text-foreground"
+                  className="block rounded-md border border-card-border p-3 text-muted transition-all hover:border-accent/50 hover:text-foreground"
                   aria-label="GitHub"
                 >
                   <FaGithub size={20} />
                 </a>
               </BootReveal>
-              <BootReveal inline delay={3800}>
+              <BootReveal inline delay={3250}>
                 <a
                   href="https://www.linkedin.com/in/josh-xie/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block rounded-full border border-card-border p-3 text-muted transition-all hover:border-accent/50 hover:text-foreground"
+                  className="block rounded-md border border-card-border p-3 text-muted transition-all hover:border-accent/50 hover:text-foreground"
                   aria-label="LinkedIn"
                 >
                   <FaLinkedin size={20} />
@@ -229,11 +153,25 @@ export default function Home() {
               </BootReveal>
             </div>
           </BootReveal>
+
+          <BootReveal delay={3400} className="mt-10 max-w-md">
+            <Terminal />
+          </BootReveal>
         </div>
 
-        {/* Right side: Experience timeline */}
+        {/* Right side: Experience timeline, styled as a terminal window */}
         <div className="shrink-0">
-          <div className="relative flex">
+          <BootReveal
+            delay={750}
+            className="overflow-hidden rounded-lg border border-card-border bg-background/70 backdrop-blur-sm"
+          >
+            <div className="flex items-center gap-2 border-b border-card-border px-4 py-2.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f56]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#ffbd2e]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#27c93f]" />
+              <span className="ml-2 text-xs text-muted">experience.log</span>
+            </div>
+            <div className="relative flex p-4">
             {/* Text + logos column */}
             <div className="flex flex-col">
               {experience.map((exp, i) => {
@@ -255,7 +193,7 @@ export default function Home() {
                         <Typewriter text={exp.role} delay={bootDelay + 180} />
                       </p>
                       <p className="mt-0.5 text-sm text-muted">
-                        <Typewriter text={exp.period} delay={bootDelay + 360} />
+                        <Typewriter text={`[${exp.period}]`} delay={bootDelay + 360} />
                       </p>
                     </div>
                     {/* Logo */}
@@ -311,7 +249,8 @@ export default function Home() {
                 </BootReveal>
               ))}
             </div>
-          </div>
+            </div>
+          </BootReveal>
         </div>
       </div>
     </div>

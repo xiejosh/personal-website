@@ -118,6 +118,10 @@ const RING_SPACING = 26; // px of cursor travel between spawned rings
 const RING_SPEED = 95; // px/s ring expansion
 const RING_LIFE = 0.9; // s before a ring fades out
 const RING_MAX = 60; // safety cap on live rings
+const PING_SPEED = 70; // px/s expansion of the ambient sonar ping
+const PING_LIFE = 3.5; // s before a ping fades out
+const PING_DELAY_MIN = 6; // s minimum gap between pings
+const PING_DELAY_VAR = 8; // s of extra random gap
 const ROCKET_MAX = 2; // concurrent rockets
 const ROCKET_FONT = `bold 16px ui-monospace, SFMono-Regular, Menlo, monospace`;
 const ROCKET_RED = "rgba(240, 82, 60, 0.95)"; // nose cone + fins
@@ -209,11 +213,13 @@ const designBounds = shapes.map((shape) => {
 });
 
 export default function AsciiBackground({
-  activeCompany,
+  activeCompany = null,
   onCompanyHover,
+  showCompanies = true,
 }: {
-  activeCompany: string | null;
+  activeCompany?: string | null;
   onCompanyHover?: (company: string | null) => void;
+  showCompanies?: boolean; // false: keep the grid/rings/pings/rockets, hide company shapes
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -247,6 +253,8 @@ export default function AsciiBackground({
     let nextSpawn = 0;
     const rings: { x: number; y: number; start: number }[] = [];
     let ringAcc = 0; // distance travelled since the last spawned ring
+    let ping: { x: number; y: number; start: number } | null = null;
+    let nextPing = 0;
     const prevCursor = { x: -99999, y: -99999 };
     let base: HTMLCanvasElement | null = null;
     const cursor = { x: -99999, y: -99999 };
@@ -310,6 +318,48 @@ export default function AsciiBackground({
       ctx.drawImage(base, 0, 0, w, h);
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
+
+      // ── Ambient ping: one lone white ring expanding slowly from a random point,
+      // like a sonar ping from deep space ──
+      if (!reduced) {
+        if (nextPing === 0) nextPing = t + 3;
+        if (!ping && t >= nextPing) {
+          ping = {
+            x: (0.1 + Math.random() * 0.8) * w,
+            y: (0.12 + Math.random() * 0.76) * h,
+            start: t,
+          };
+        }
+      }
+      if (ping) {
+        const age = t - ping.start;
+        const life = 1 - age / PING_LIFE;
+        if (life <= 0) {
+          ping = null;
+          nextPing = t + PING_DELAY_MIN + Math.random() * PING_DELAY_VAR;
+        } else {
+          ctx.font = BASE_FONT;
+          const radius = 4 + age * PING_SPEED;
+          const band = CELL * 0.6;
+          const cMin = Math.max(0, Math.floor((ping.x - radius - band) / CELL));
+          const cMax = Math.min(cols - 1, Math.ceil((ping.x + radius + band) / CELL));
+          const rMin = Math.max(0, Math.floor((ping.y - radius - band) / CELL));
+          const rMax = Math.min(rows - 1, Math.ceil((ping.y + radius + band) / CELL));
+          for (let r = rMin; r <= rMax; r++) {
+            for (let c = cMin; c <= cMax; c++) {
+              const d = Math.hypot(c * CELL + CELL / 2 - ping.x, r * CELL + CELL / 2 - ping.y);
+              if (Math.abs(d - radius) > band) continue;
+              const x = c * CELL;
+              const y = r * CELL;
+              ctx.clearRect(x, y, CELL, CELL);
+              ctx.fillStyle = `rgba(${GRID_COLOR}, ${GRID_ALPHA * (1 - life * 0.8)})`;
+              ctx.fillText("#", x + CELL / 2, y + CELL / 2);
+              ctx.fillStyle = `rgba(${RING_COLOR}, ${0.5 * life})`;
+              ctx.fillText("~", x + CELL / 2, y + CELL / 2);
+            }
+          }
+        }
+      }
 
       // ── Cursor rings: white circle outlines stream off the cursor as it moves,
       // spawned every RING_SPACING px along its path, each expanding and fading
@@ -463,7 +513,7 @@ export default function AsciiBackground({
       let newHovered: string | null = null;
 
       ctx.font = DOT_FONT;
-      for (let s = 0; s < shapes.length; s++) {
+      for (let s = 0; showCompanies && s < shapes.length; s++) {
         const shape = shapes[s];
         const b = designBounds[s];
 
@@ -587,7 +637,7 @@ export default function AsciiBackground({
       window.removeEventListener("mousemove", handleMove);
       document.documentElement.removeEventListener("mouseleave", handleLeave);
     };
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, showCompanies]);
 
   return (
     <canvas
