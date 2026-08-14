@@ -1,9 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
 import Image from "next/image";
-import { HiChevronDown } from "react-icons/hi";
 import {
   FaJava,
   FaPython,
@@ -38,6 +35,7 @@ import {
 import { IconType } from "react-icons";
 import AsciiBackground from "../components/AsciiBackground";
 import { Typewriter, BootReveal, TerminalWindow } from "../components/Boot";
+import Terminal from "../components/Terminal";
 
 // ── Skill data ──────────────────────────────────────────────
 
@@ -107,7 +105,7 @@ const skillCategories: SkillCategory[] = [
     ],
   },
   {
-    title: "AWS Services",
+    title: "AWS",
     skills: [
       { name: "API Gateway", logo: "/api_gateway_logo.svg", url: "https://aws.amazon.com/api-gateway/", color: "#ff9900" },
       { name: "DynamoDB", icon: SiAmazondynamodb, url: "https://aws.amazon.com/dynamodb/", color: "#4053d6" },
@@ -125,218 +123,151 @@ const skillCategories: SkillCategory[] = [
   },
 ];
 
-const education = [
-  {
-    school: "University of Michigan",
-    degree: "BSE in Computer Science",
-    period: "Aug 2022 – May 2026",
-    sections: [
-      {
-        label: "Relevant Coursework",
-        items: [
-          "[EECS 280] OOP in C++",
-          "[EECS 281] Data Structures and Algorithms in C++",
-          "[EECS 370] Computer Organization",
-          "[EECS 376] Foundations and Algorithms of Computer Science",
-          "[EECS 445] Machine Learning",
-          "[EECS 481] Software Engineering",
-          "[EECS 482] Operating Systems",
-          "[EECS 491] Distributed Systems",
-          "[EECS 492] Artificial Intelligence",
-        ],
-      },
-      {
-        label: "Activities & Extracurriculars",
-        items: [
-          "Alpha Kappa Psi Professional Business Fraternity - VP Technology",
-          "Division III Badminton",
-          "Michigan Data Science Team",
-          "Sigma Nu Fraternity",
-        ],
-      },
-    ],
-  },
+const coursework = [
+  "[EECS 280] OOP in C++",
+  "[EECS 281] Data Structures and Algorithms in C++",
+  "[EECS 370] Computer Organization",
+  "[EECS 376] Foundations and Algorithms of CS",
+  "[EECS 445] Machine Learning",
+  "[EECS 481] Software Engineering",
+  "[EECS 482] Operating Systems",
+  "[EECS 491] Distributed Systems",
+  "[EECS 492] Artificial Intelligence",
 ];
 
-// ── Components ──────────────────────────────────────────────
-
-function SkillDropdown({ category }: { category: SkillCategory }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="rounded-lg border border-card-border bg-card-bg/70 backdrop-blur-sm">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between px-5 py-4 text-left text-base font-semibold transition-colors hover:text-accent"
-      >
-        {category.title}
-        <motion.div
-          animate={{ rotate: open ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <HiChevronDown size={18} />
-        </motion.div>
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <div className="grid grid-cols-2 gap-3 px-5 pb-5 sm:grid-cols-4">
-              {category.skills.map((skill) => (
-                <a
-                  key={skill.name}
-                  href={skill.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex flex-col items-center gap-2 rounded-md border border-card-border bg-background/80 p-4 transition-all hover:border-accent/40 hover:shadow-md hover:shadow-accent/5"
-                >
-                  {skill.logo ? (
-                    <Image
-                      src={skill.logo}
-                      alt={skill.name}
-                      width={28}
-                      height={28}
-                      className="h-7 w-7 object-contain transition-transform group-hover:scale-110"
-                    />
-                  ) : skill.icon ? (
-                    <skill.icon
-                      size={28}
-                      style={{ color: skill.color }}
-                      className="transition-transform group-hover:scale-110"
-                    />
-                  ) : null}
-                  <span className="text-center text-sm text-muted group-hover:text-foreground">
-                    {skill.name}
-                  </span>
-                </a>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function EducationDropdown({ label, items }: { label: string; items: string[] }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2 border-t border-card-border px-5 py-3 text-sm text-muted transition-colors hover:text-accent"
-      >
-        <motion.div
-          animate={{ rotate: open ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <HiChevronDown size={16} />
-        </motion.div>
-        {label}
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <ul className="flex flex-col gap-1.5 px-5 pb-4">
-              {items.map((item) => (
-                <li key={item} className="text-sm text-muted">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  );
-}
-
-function EducationCard({ edu }: { edu: { school: string; degree: string; period: string; sections: { label: string; items: string[] }[] } }) {
-  return (
-    <div className="rounded-lg border border-card-border bg-card-bg/70 backdrop-blur-sm">
-      <div className="p-5">
-        <h3 className="text-base font-semibold">{edu.school}</h3>
-        <p className="text-base text-accent">{edu.degree}</p>
-        <p className="mt-1 text-sm text-muted">[{edu.period}]</p>
-      </div>
-      {edu.sections.map((section) => (
-        <EducationDropdown key={section.label} label={section.label} items={section.items} />
-      ))}
-    </div>
-  );
-}
+const activities = [
+  "Alpha Kappa Psi Professional Business Fraternity - VP Technology",
+  "Division III Badminton",
+  "Michigan Data Science Team",
+  "Sigma Nu Fraternity",
+];
 
 // ── Page ────────────────────────────────────────────────────
 
 export default function About() {
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden px-[max(1rem,2vw)] py-16">
+    <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden px-[max(1rem,2vw)] py-6">
       <AsciiBackground showCompanies={false} />
 
-      <div className="relative z-10">
-        {/* Bio */}
-        <p className="mb-4 text-sm text-accent">
-          <Typewriter text="$ cat about.md" delay={100} />
-        </p>
-        <TerminalWindow title="about.md" delay={700} className="mb-16 max-w-3xl">
-          <div className="p-5">
-            <h1 className="mb-4 text-3xl font-bold sm:text-4xl">
-              about <span className="gradient-text">me</span>
-            </h1>
-            <p className="text-lg leading-relaxed text-muted">
-              hi, i&apos;m josh, and i&apos;m currently based in seattle! i love everything tech, but specifically ai/ml, db engineering,
-              cv, robotics, saas, and crypto. i&apos;m also passionate for music, spending a majority of my free time producing or djing. besides from that, i also like eating, raving, running, hiking, and much more. connect{" "}
-              <a
-                href="https://www.linkedin.com/in/josh-xie/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-accent transition-colors hover:text-accent-secondary"
-              >
-                here
-              </a>
-              {" "}if you are a startup founder, an investor, a fellow rave goer, or in the seattle area and want to meet up :)
-            </p>
-          </div>
-        </TerminalWindow>
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-10 lg:flex-row lg:items-start">
+        {/* Left: bio + terminal */}
+        <div className="min-w-0 flex-1">
+          <p className="mb-4 text-sm text-accent">
+            <Typewriter text="$ cat about.md" delay={100} />
+          </p>
+          <TerminalWindow title="about.md" delay={700} className="mb-6">
+            <div className="p-5">
+              <h1 className="mb-4 text-3xl font-bold sm:text-4xl">
+                about <span className="gradient-text">me</span>
+              </h1>
+              <p className="text-base leading-relaxed text-muted">
+                hi, i&apos;m josh, and i&apos;m currently based in seattle! i love everything tech, but specifically ai/ml, db engineering,
+                cv, robotics, saas, and crypto. i&apos;m also passionate for music, spending a majority of my free time producing or djing. besides from that, i also like eating, raving, running, hiking, and much more. connect{" "}
+                <a
+                  href="https://www.linkedin.com/in/josh-xie/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-accent transition-colors hover:text-accent-secondary"
+                >
+                  here
+                </a>
+                {" "}if you are a startup founder, an investor, a fellow rave goer, or in the seattle area and want to meet up :)
+              </p>
+            </div>
+          </TerminalWindow>
 
-        {/* Education */}
-        <section className="mb-16 max-w-3xl">
-          <h2 className="mb-6 text-2xl font-bold">
-            <Typewriter text="> education" delay={1000} />
-          </h2>
-          <BootReveal delay={1500} className="flex flex-col gap-4">
-            {education.map((edu, i) => (
-              <EducationCard key={i} edu={edu} />
-            ))}
+          <BootReveal delay={1500} className="max-w-md">
+            <Terminal />
           </BootReveal>
-        </section>
+        </div>
 
-        {/* Skills */}
-        <section className="max-w-3xl">
-          <h2 className="mb-6 text-2xl font-bold">
-            <Typewriter text="> skills & technologies" delay={1800} />
-          </h2>
-          <div className="flex flex-col gap-3">
-            {skillCategories.map((cat, i) => (
-              <BootReveal key={cat.title} delay={2400 + i * 150}>
-                <SkillDropdown category={cat} />
-              </BootReveal>
-            ))}
-          </div>
-        </section>
+        {/* Right: education + skills */}
+        <div className="w-full shrink-0 lg:w-[42rem]">
+          <section className="mb-6">
+            <h2 className="mb-3 text-2xl font-bold">
+              <Typewriter text="> education" delay={900} />
+            </h2>
+            <BootReveal delay={1300}>
+              <div className="rounded-lg border border-card-border bg-card-bg/70 p-4 backdrop-blur-sm">
+                <div className="flex items-center gap-4">
+                  <Image
+                    src="/umich_logo.svg"
+                    alt="University of Michigan"
+                    width={64}
+                    height={46}
+                    className="h-12 w-16 object-contain"
+                  />
+                  <div>
+                    <p className="text-base font-semibold">BSE in Computer Science</p>
+                    <p className="text-sm text-muted">[Aug 2022 – May 2026]</p>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-accent">&gt; coursework</p>
+                    <ul className="flex flex-col gap-0.5">
+                      {coursework.map((item) => (
+                        <li key={item} className="text-xs text-muted">
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-accent">&gt; activities</p>
+                    <ul className="flex flex-col gap-0.5">
+                      {activities.map((item) => (
+                        <li key={item} className="text-xs text-muted">
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </BootReveal>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-2xl font-bold">
+              <Typewriter text="> skills & technologies" delay={1700} />
+            </h2>
+            <div className="flex flex-col gap-2">
+              {skillCategories.map((cat, i) => (
+                <BootReveal key={cat.title} delay={2200 + i * 130}>
+                  <div className="flex items-center gap-4 rounded-lg border border-card-border bg-card-bg/70 px-4 py-2 backdrop-blur-sm">
+                    <span className="w-36 shrink-0 text-sm font-semibold">{cat.title}</span>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {cat.skills.map((skill) => (
+                        <a
+                          key={skill.name}
+                          href={skill.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={skill.name}
+                          aria-label={skill.name}
+                          className="transition-transform hover:scale-125"
+                        >
+                          {skill.logo ? (
+                            <Image
+                              src={skill.logo}
+                              alt={skill.name}
+                              width={20}
+                              height={20}
+                              className="h-5 w-5 object-contain"
+                            />
+                          ) : skill.icon ? (
+                            <skill.icon size={20} style={{ color: skill.color }} />
+                          ) : null}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </BootReveal>
+              ))}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

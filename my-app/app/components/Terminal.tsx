@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const HELP = [
   "available commands:",
   "  help          show this list",
   "  whoami        who is this guy?",
   "  ls            list pages",
-  "  cd <page>     go to a page (about, projects, contact)",
+  "  cd <page>     go to a page (home, about, projects, contact)",
   "  experience    print experience.log",
   "  clear         clear the terminal",
 ];
@@ -31,6 +31,7 @@ interface Line {
 
 export default function Terminal() {
   const router = useRouter();
+  const pathname = usePathname();
   const [lines, setLines] = useState<Line[]>([
     { text: "type 'help' to get started", kind: "out" },
   ]);
@@ -98,8 +99,13 @@ export default function Terminal() {
         if (PAGES.includes(dest)) {
           out = [`navigating to ~/${dest} ...`];
           router.push(`/${dest}`);
-        } else if (dest === "" || dest === "~" || dest === "home") {
-          out = ["already home"];
+        } else if (dest === "" || dest === "~" || dest === "home" || dest === "..") {
+          if (pathname === "/") {
+            out = ["already home"];
+          } else {
+            out = ["navigating to ~ ..."];
+            router.push("/");
+          }
         } else {
           out = [`cd: no such directory: ${dest}`];
         }
