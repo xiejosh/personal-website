@@ -117,11 +117,17 @@ const RING_COLOR = "244, 244, 252"; // white rings streaming off the moving curs
 const RING_SPACING = 26; // px of cursor travel between spawned rings
 const RING_SPEED = 95; // px/s ring expansion
 const RING_LIFE = 0.9; // s before a ring fades out
-const RING_MAX = 60; // safety cap on live rings
+const RING_MAX = 1000; // runaway backstop only — rings self-expire via RING_LIFE, so this is unreachable with real cursor movement
+const PING_CLICK_COLOR = "191, 64, 255"; // neon purple for click ripples (ambient stays white)
 const PING_SPEED = 70; // px/s expansion of the ambient sonar ping
 const PING_LIFE = 3.5; // s before a ping fades out
 const PING_DELAY_MIN = 6; // s minimum gap between pings
 const PING_DELAY_VAR = 8; // s of extra random gap
+const CLICK_WAVE_MID_COLOR = "222, 65, 255"; // magenta bridge between the purple ping and pink edge
+const CLICK_WAVE_PINK_COLOR = "255, 74, 181";
+const CLICK_WAVE_SPEED = 280; // px/s: horizontal wavefront speed
+const CLICK_WAVE_LIFE = 1.45; // s before the horizontal trails dissolve
+const CLICK_WAVE_TRAIL = 8; // character cells behind each wavefront
 const ROCKET_MAX = 2; // concurrent rockets
 const ROCKET_FONT = `bold 16px ui-monospace, SFMono-Regular, Menlo, monospace`;
 const ROCKET_RED = "rgba(240, 82, 60, 0.95)"; // nose cone + fins
@@ -253,7 +259,8 @@ export default function AsciiBackground({
     let nextSpawn = 0;
     const rings: { x: number; y: number; start: number }[] = [];
     let ringAcc = 0; // distance travelled since the last spawned ring
-    let ping: { x: number; y: number; start: number } | null = null;
+    const pings: { x: number; y: number; start: number; color: string; peak: number }[] = [];
+    const clickWaves: { x: number; y: number; start: number }[] = [];
     let nextPing = 0;
     const prevCursor = { x: -99999, y: -99999 };
     let base: HTMLCanvasElement | null = null;
@@ -302,6 +309,24 @@ export default function AsciiBackground({
       cursor.y = -99999;
     };
 
+    // Every click drops a ping ring at the cursor (same style as the ambient one)
+    const handleClick = (e: MouseEvent) => {
+      if (reduced) return;
+      const rect = canvas.getBoundingClientRect();
+      pings.push({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        start: performance.now() / 1000,
+        color: PING_CLICK_COLOR,
+        peak: 0.75,
+      });
+      clickWaves.push({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        start: performance.now() / 1000,
+      });
+    };
+
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
       if (w === 0 || h === 0 || !base) return;
@@ -319,44 +344,77 @@ export default function AsciiBackground({
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      // ── Ambient ping: one lone white ring expanding slowly from a random point,
-      // like a sonar ping from deep space ──
+      // ── Pings: lone white rings expanding slowly — one from a random point
+      // every so often (deep-space sonar), plus one on every click ──
       if (!reduced) {
         if (nextPing === 0) nextPing = t + 3;
-        if (!ping && t >= nextPing) {
-          ping = {
+        if (t >= nextPing) {
+          pings.push({
             x: (0.1 + Math.random() * 0.8) * w,
             y: (0.12 + Math.random() * 0.76) * h,
             start: t,
-          };
+            color: RING_COLOR,
+            peak: 0.5,
+          });
+          nextPing = t + PING_DELAY_MIN + Math.random() * PING_DELAY_VAR;
         }
       }
-      if (ping) {
-        const age = t - ping.start;
+      for (let i = pings.length - 1; i >= 0; i--) {
+        if (t - pings[i].start >= PING_LIFE) pings.splice(i, 1);
+      }
+      ctx.font = BASE_FONT;
+      for (let i = 0; i < pings.length; i++) {
+        const pg = pings[i];
+        const age = t - pg.start;
         const life = 1 - age / PING_LIFE;
-        if (life <= 0) {
-          ping = null;
-          nextPing = t + PING_DELAY_MIN + Math.random() * PING_DELAY_VAR;
-        } else {
-          ctx.font = BASE_FONT;
-          const radius = 4 + age * PING_SPEED;
-          const band = CELL * 0.6;
-          const cMin = Math.max(0, Math.floor((ping.x - radius - band) / CELL));
-          const cMax = Math.min(cols - 1, Math.ceil((ping.x + radius + band) / CELL));
-          const rMin = Math.max(0, Math.floor((ping.y - radius - band) / CELL));
-          const rMax = Math.min(rows - 1, Math.ceil((ping.y + radius + band) / CELL));
-          for (let r = rMin; r <= rMax; r++) {
-            for (let c = cMin; c <= cMax; c++) {
-              const d = Math.hypot(c * CELL + CELL / 2 - ping.x, r * CELL + CELL / 2 - ping.y);
-              if (Math.abs(d - radius) > band) continue;
-              const x = c * CELL;
-              const y = r * CELL;
-              ctx.clearRect(x, y, CELL, CELL);
-              ctx.fillStyle = `rgba(${GRID_COLOR}, ${GRID_ALPHA * (1 - life * 0.8)})`;
-              ctx.fillText("#", x + CELL / 2, y + CELL / 2);
-              ctx.fillStyle = `rgba(${RING_COLOR}, ${0.5 * life})`;
-              ctx.fillText("~", x + CELL / 2, y + CELL / 2);
-            }
+        const radius = 4 + age * PING_SPEED;
+        const band = CELL * 0.6;
+        const cMin = Math.max(0, Math.floor((pg.x - radius - band) / CELL));
+        const cMax = Math.min(cols - 1, Math.ceil((pg.x + radius + band) / CELL));
+        const rMin = Math.max(0, Math.floor((pg.y - radius - band) / CELL));
+        const rMax = Math.min(rows - 1, Math.ceil((pg.y + radius + band) / CELL));
+        for (let r = rMin; r <= rMax; r++) {
+          for (let c = cMin; c <= cMax; c++) {
+            const d = Math.hypot(c * CELL + CELL / 2 - pg.x, r * CELL + CELL / 2 - pg.y);
+            if (Math.abs(d - radius) > band) continue;
+            const x = c * CELL;
+            const y = r * CELL;
+            ctx.clearRect(x, y, CELL, CELL);
+            ctx.fillStyle = `rgba(${GRID_COLOR}, ${GRID_ALPHA * (1 - life * 0.8)})`;
+            ctx.fillText("#", x + CELL / 2, y + CELL / 2);
+            ctx.fillStyle = `rgba(${pg.color}, ${pg.peak * life})`;
+            ctx.fillText("~", x + CELL / 2, y + CELL / 2);
+          }
+        }
+      }
+
+      // ── Click waves: a pair of terminal-style signals shoot left and right
+      // from each click. Pink '~' characters lead a magenta '=' wake so the
+      // wave reads horizontally while the original purple ping expands around it. ──
+      for (let i = clickWaves.length - 1; i >= 0; i--) {
+        if (t - clickWaves[i].start >= CLICK_WAVE_LIFE) clickWaves.splice(i, 1);
+      }
+      for (const wave of clickWaves) {
+        const age = t - wave.start;
+        const life = 1 - age / CLICK_WAVE_LIFE;
+        const distance = age * CLICK_WAVE_SPEED;
+        const row = Math.floor(wave.y / CELL);
+
+        for (const direction of [-1, 1]) {
+          for (let trail = 0; trail < CLICK_WAVE_TRAIL; trail++) {
+            const px = wave.x + direction * (distance - trail * CELL);
+            const col = Math.floor(px / CELL);
+            if (col < 0 || col >= cols || row < 0 || row >= rows) continue;
+
+            const trailLife = 1 - trail / CLICK_WAVE_TRAIL;
+            const isLeadingEdge = trail < 2;
+            const x = col * CELL;
+            const y = row * CELL;
+            ctx.clearRect(x, y, CELL, CELL);
+            ctx.fillStyle = `rgba(${GRID_COLOR}, ${GRID_ALPHA * (1 - life * trailLife)})`;
+            ctx.fillText("#", x + CELL / 2, y + CELL / 2);
+            ctx.fillStyle = `rgba(${isLeadingEdge ? CLICK_WAVE_PINK_COLOR : CLICK_WAVE_MID_COLOR}, ${life * trailLife * 0.95})`;
+            ctx.fillText(isLeadingEdge ? "~" : "=", x + CELL / 2, y + CELL / 2);
           }
         }
       }
@@ -390,14 +448,15 @@ export default function AsciiBackground({
       prevCursor.y = cursor.y;
 
       ctx.font = BASE_FONT;
+      // Prune expired rings first, then draw oldest → newest so a fresh stroke
+      // paints over a fading one instead of being erased by it in the overlap
       for (let i = rings.length - 1; i >= 0; i--) {
+        if (t - rings[i].start >= RING_LIFE) rings.splice(i, 1);
+      }
+      for (let i = 0; i < rings.length; i++) {
         const rg = rings[i];
         const age = t - rg.start;
         const life = 1 - age / RING_LIFE;
-        if (life <= 0) {
-          rings.splice(i, 1);
-          continue;
-        }
         const radius = 6 + age * RING_SPEED;
         const band = CELL * 0.6; // ring thickness
         const cMin = Math.max(0, Math.floor((rg.x - radius - band) / CELL));
@@ -628,6 +687,7 @@ export default function AsciiBackground({
     resize();
     window.addEventListener("resize", resize);
     window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mousedown", handleClick);
     document.documentElement.addEventListener("mouseleave", handleLeave);
     raf = requestAnimationFrame(frame);
 
@@ -635,6 +695,7 @@ export default function AsciiBackground({
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mousedown", handleClick);
       document.documentElement.removeEventListener("mouseleave", handleLeave);
     };
   }, [prefersReducedMotion, showCompanies]);
