@@ -12,6 +12,7 @@ import AsciiBackground from "./components/AsciiBackground";
 import { Typewriter, BootReveal } from "./components/Boot";
 import NowPlaying from "./components/NowPlaying";
 import Terminal from "./components/Terminal";
+import { VisitorChart } from "./components/Visitors";
 
 const roles = [
   "DJ",
@@ -251,6 +252,8 @@ export default function Home() {
             </div>
             </div>
           </BootReveal>
+
+          <VisitorChart delay={3200} />
         </div>
       </div>
     </div>
