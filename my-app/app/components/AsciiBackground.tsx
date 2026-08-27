@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { useReducedMotion } from "framer-motion";
 
 interface ShapePoint {
@@ -180,12 +180,92 @@ const REPULSE_RATE = 2.0; // approach speed of the smoothed offset
 const ALPHA_IDLE = 0.5;
 const ALPHA_ACTIVE = 0.95;
 const ALPHA_DIMMED = 0.14;
+const ASTEROID_COUNT = 14; // drifting rocks when the `asteroids` prop is on
+const ASTEROID_COLOR = "148, 163, 184"; // slate-gray rock
+const ASTEROID_SPEED_MIN = 6; // px/s leftward belt drift
+const ASTEROID_SPEED_VAR = 16;
+const ASTEROID_SPIN_MAX = 0.35; // rad/s tumble
+const EXPLOSION_COLOR = "255, 184, 48"; // spark debris + shockwave ring on asteroid click
+const DEBRIS_SPEED_MIN = 50; // px/s shard scatter
+const DEBRIS_SPEED_VAR = 120;
+const ASTEROID_RESPAWN_MIN = 2; // s before a replacement rock drifts in from the right
+const ASTEROID_RESPAWN_VAR = 4;
+const FLASH_LIFE = 0.18; // s of white-hot core flash on detonation
+const FLASH_COLOR = "255, 253, 240";
+const SPARK_HOT_COLOR = "255, 255, 220"; // sparks cool white → orange → red
+const SPARK_COOL_COLOR = "255, 96, 64";
+const SMOKE_COLOR = "176, 184, 204";
+const SHARD_COLOR = "210, 220, 240"; // shards glow brighter than the resting rock gray
+const KNOCKBACK_RADIUS = 180; // px: the blast shoves nearby rocks
+const KNOCKBACK_SPEED = 60; // px/s impulse at zero distance
 
 interface Rocket {
   x: number;
   y: number;
   vx: number;
   vy: number;
+}
+
+interface Asteroid {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  bvx: number; // base drift the rock relaxes back to after a knockback
+  bvy: number;
+  angle: number;
+  spin: number;
+  hitR: number; // px click-target radius
+  cells: { dx: number; dy: number; ch: string; alpha: number }[];
+}
+
+interface Debris {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  ch: string;
+  kind: "shard" | "spark" | "smoke";
+  start: number;
+  life: number;
+}
+
+// Irregular blob of cells: '#' core, 'o' mid, '.' rim, squashed and jittered so
+// no two rocks match. Offsets are in px relative to the asteroid center.
+function makeAsteroid(x: number, y: number): Asteroid {
+  const radius = 1 + Math.random() * 2.2; // in cells
+  const squash = 0.65 + Math.random() * 0.5;
+  const reach = Math.ceil(radius);
+  const cells: Asteroid["cells"] = [];
+  for (let cy = -reach; cy <= reach; cy++) {
+    for (let cx = -reach; cx <= reach; cx++) {
+      const d = Math.hypot(cx, cy / squash);
+      if (d > radius + (Math.random() * 0.7 - 0.35)) continue;
+      const edge = Math.min(1, d / radius);
+      cells.push({
+        dx: cx * CELL,
+        dy: cy * CELL,
+        ch: edge < 0.45 ? "#" : edge < 0.8 ? "o" : ".",
+        alpha: (0.55 - edge * 0.3) * (0.8 + Math.random() * 0.4),
+      });
+    }
+  }
+  if (!cells.length) cells.push({ dx: 0, dy: 0, ch: "o", alpha: 0.4 });
+  const maxOffset = Math.max(...cells.map((c) => Math.hypot(c.dx, c.dy)));
+  const vx = -(ASTEROID_SPEED_MIN + Math.random() * ASTEROID_SPEED_VAR);
+  const vy = (Math.random() - 0.5) * 6;
+  return {
+    x,
+    y,
+    hitR: Math.max(CELL * 2, maxOffset + CELL),
+    vx,
+    vy,
+    bvx: vx,
+    bvy: vy,
+    angle: Math.random() * Math.PI * 2,
+    spin: (Math.random() - 0.5) * 2 * ASTEROID_SPIN_MAX,
+    cells,
+  };
 }
 
 function rotatePoint(x: number, y: number, cx: number, cy: number, deg: number) {
@@ -218,17 +298,36 @@ const designBounds = shapes.map((shape) => {
   return { minX, maxX, minY, maxY, centerX: (minX + maxX) / 2, centerY: (minY + maxY) / 2 };
 });
 
-export default function AsciiBackground({
-  activeCompany = null,
-  onCompanyHover,
-  showCompanies = true,
-}: {
+export interface AsciiBackgroundHandle {
+  /** Drop a sonar ping ring at the given viewport coordinates. */
+  ping: (clientX: number, clientY: number) => void;
+}
+
+interface AsciiBackgroundProps {
   activeCompany?: string | null;
   onCompanyHover?: (company: string | null) => void;
   showCompanies?: boolean; // false: keep the grid/rings/pings/rockets, hide company shapes
-}) {
+  asteroids?: boolean; // drifting gray ASCII rocks (the contact page's belt)
+}
+
+const AsciiBackground = forwardRef<AsciiBackgroundHandle, AsciiBackgroundProps>(
+  function AsciiBackground(
+    { activeCompany = null, onCompanyHover, showCompanies = true, asteroids = false },
+    ref
+  ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  const pingQueue = useRef<{ x: number; y: number }[]>([]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      ping: (clientX: number, clientY: number) => {
+        pingQueue.current.push({ x: clientX, y: clientY });
+      },
+    }),
+    []
+  );
 
   const activeRef = useRef(activeCompany);
   useEffect(() => {
@@ -256,6 +355,11 @@ export default function AsciiBackground({
     let rows = 0;
     let fire = new Float32Array(0);
     const rockets: Rocket[] = [];
+    const belt: Asteroid[] = [];
+    const debris: Debris[] = [];
+    const flashes: { x: number; y: number; start: number }[] = [];
+    let beltSeeded = false;
+    let nextRespawn = 0;
     let nextSpawn = 0;
     const rings: { x: number; y: number; start: number }[] = [];
     let ringAcc = 0; // distance travelled since the last spawned ring
@@ -309,10 +413,93 @@ export default function AsciiBackground({
       cursor.y = -99999;
     };
 
-    // Every click drops a ping ring at the cursor (same style as the ambient one)
+    // Detonate a rock: core flash, double shockwave, the rock's own cells as
+    // tumbling shards, white-hot sparks that cool and seed ember trails, smoke
+    // that lingers, and a shove to any neighbors caught in the blast
+    const explode = (ast: Asteroid, t: number) => {
+      flashes.push({ x: ast.x, y: ast.y, start: t });
+      pings.push({ x: ast.x, y: ast.y, start: t, color: EXPLOSION_COLOR, peak: 1 });
+      pings.push({ x: ast.x, y: ast.y, start: t + 0.15, color: RING_COLOR, peak: 0.6 });
+
+      const cos = Math.cos(ast.angle);
+      const sin = Math.sin(ast.angle);
+      for (const cell of ast.cells) {
+        const dx = cell.dx * cos - cell.dy * sin;
+        const dy = cell.dx * sin + cell.dy * cos;
+        const d = Math.hypot(dx, dy) || 1;
+        const speed = DEBRIS_SPEED_MIN + Math.random() * DEBRIS_SPEED_VAR;
+        debris.push({
+          x: ast.x + dx,
+          y: ast.y + dy,
+          vx: (dx / d) * speed + ast.vx * 0.5 + (Math.random() - 0.5) * 30,
+          vy: (dy / d) * speed + ast.vy * 0.5 + (Math.random() - 0.5) * 30,
+          ch: cell.ch,
+          kind: "shard",
+          start: t,
+          life: 0.7 + Math.random() * 0.6,
+        });
+      }
+
+      const sparks = 10 + Math.floor(Math.random() * 6);
+      for (let i = 0; i < sparks; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const speed = 130 + Math.random() * 190;
+        debris.push({
+          x: ast.x,
+          y: ast.y,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed,
+          ch: "*",
+          kind: "spark",
+          start: t,
+          life: 0.4 + Math.random() * 0.45,
+        });
+      }
+
+      const puffs = 7 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < puffs; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const speed = 8 + Math.random() * 18;
+        debris.push({
+          x: ast.x + (Math.random() - 0.5) * CELL * 2,
+          y: ast.y + (Math.random() - 0.5) * CELL * 2,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed,
+          ch: ",",
+          kind: "smoke",
+          start: t,
+          life: 1.4 + Math.random(),
+        });
+      }
+
+      for (const other of belt) {
+        if (other === ast) continue;
+        const dx = other.x - ast.x;
+        const dy = other.y - ast.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist === 0 || dist > KNOCKBACK_RADIUS) continue;
+        const push = KNOCKBACK_SPEED * (1 - dist / KNOCKBACK_RADIUS);
+        other.vx += (dx / dist) * push;
+        other.vy += (dy / dist) * push;
+        other.spin += (Math.random() - 0.5) * 0.6;
+      }
+    };
+
+    // Every click drops a ping ring at the cursor (same style as the ambient
+    // one) — unless it lands on an asteroid, which blows up instead
     const handleClick = (e: MouseEvent) => {
       if (reduced) return;
       const rect = canvas.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      for (let i = belt.length - 1; i >= 0; i--) {
+        const ast = belt[i];
+        if (Math.hypot(ast.x - cx, ast.y - cy) <= ast.hitR) {
+          explode(ast, performance.now() / 1000);
+          belt.splice(i, 1);
+          return;
+        }
+      }
       pings.push({
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
@@ -344,6 +531,24 @@ export default function AsciiBackground({
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
+      // Pings queued from the page via the ref handle (e.g. hovering a contact
+      // asteroid) — same style as the ambient sonar ping
+      if (pingQueue.current.length) {
+        const rect = canvas.getBoundingClientRect();
+        if (!reduced) {
+          for (const q of pingQueue.current) {
+            pings.push({
+              x: q.x - rect.left,
+              y: q.y - rect.top,
+              start: t,
+              color: RING_COLOR,
+              peak: 0.75,
+            });
+          }
+        }
+        pingQueue.current.length = 0;
+      }
+
       // ── Pings: lone white rings expanding slowly — one from a random point
       // every so often (deep-space sonar), plus one on every click ──
       if (!reduced) {
@@ -366,6 +571,7 @@ export default function AsciiBackground({
       for (let i = 0; i < pings.length; i++) {
         const pg = pings[i];
         const age = t - pg.start;
+        if (age < 0) continue; // scheduled shockwaves (explosion second ring) wait their turn
         const life = 1 - age / PING_LIFE;
         const radius = 4 + age * PING_SPEED;
         const band = CELL * 0.6;
@@ -388,9 +594,9 @@ export default function AsciiBackground({
         }
       }
 
-      // ── Click waves: a pair of terminal-style signals shoot left and right
-      // from each click. Pink '~' characters lead a magenta '=' wake so the
-      // wave reads horizontally while the original purple ping expands around it. ──
+      // ── Click waves: terminal-style signals shoot along both axes from each
+      // click. Pink '~' characters lead a magenta '=' wake while the original
+      // purple ping expands around the four-direction burst. ──
       for (let i = clickWaves.length - 1; i >= 0; i--) {
         if (t - clickWaves[i].start >= CLICK_WAVE_LIFE) clickWaves.splice(i, 1);
       }
@@ -398,12 +604,20 @@ export default function AsciiBackground({
         const age = t - wave.start;
         const life = 1 - age / CLICK_WAVE_LIFE;
         const distance = age * CLICK_WAVE_SPEED;
-        const row = Math.floor(wave.y / CELL);
+        const directions = [
+          { x: -1, y: 0 },
+          { x: 1, y: 0 },
+          { x: 0, y: -1 },
+          { x: 0, y: 1 },
+        ];
 
-        for (const direction of [-1, 1]) {
+        for (const direction of directions) {
           for (let trail = 0; trail < CLICK_WAVE_TRAIL; trail++) {
-            const px = wave.x + direction * (distance - trail * CELL);
+            const offset = distance - trail * CELL;
+            const px = wave.x + direction.x * offset;
+            const py = wave.y + direction.y * offset;
             const col = Math.floor(px / CELL);
+            const row = Math.floor(py / CELL);
             if (col < 0 || col >= cols || row < 0 || row >= rows) continue;
 
             const trailLife = 1 - trail / CLICK_WAVE_TRAIL;
@@ -567,6 +781,130 @@ export default function AsciiBackground({
         ctx.fillText(k > 0.55 ? "-" : ".", x + CELL / 2, y + CELL / 2);
       }
 
+      // ── Asteroid belt: small gray rocks tumbling slowly leftward, wrapping
+      // around the edges (contact page) ──
+      if (asteroids) {
+        if (!beltSeeded) {
+          beltSeeded = true;
+          for (let i = 0; i < ASTEROID_COUNT; i++) {
+            belt.push(makeAsteroid(Math.random() * w, Math.random() * h));
+          }
+        }
+        // Replace blown-up rocks one at a time, drifting in from the right
+        if (belt.length < ASTEROID_COUNT) {
+          if (nextRespawn === 0) {
+            nextRespawn = t + ASTEROID_RESPAWN_MIN + Math.random() * ASTEROID_RESPAWN_VAR;
+          } else if (t >= nextRespawn) {
+            belt.push(makeAsteroid(w + 80, Math.random() * h));
+            nextRespawn = 0;
+          }
+        } else {
+          nextRespawn = 0;
+        }
+        ctx.font = BASE_FONT;
+        for (const ast of belt) {
+          if (!reduced) {
+            ast.x += ast.vx * dt;
+            ast.y += ast.vy * dt;
+            ast.angle += ast.spin * dt;
+            // Knockback from explosions decays back to the rock's base drift
+            const relax = Math.min(1, dt * 0.4);
+            ast.vx += (ast.bvx - ast.vx) * relax;
+            ast.vy += (ast.bvy - ast.vy) * relax;
+            if (ast.x < -80) {
+              ast.x = w + 80;
+              ast.y = Math.random() * h;
+            } else if (ast.x > w + 90) {
+              ast.x = -70;
+              ast.y = Math.random() * h;
+            }
+            if (ast.y < -80) ast.y = h + 80;
+            else if (ast.y > h + 80) ast.y = -80;
+          }
+          const cos = Math.cos(ast.angle);
+          const sin = Math.sin(ast.angle);
+          for (const cell of ast.cells) {
+            const px = ast.x + cell.dx * cos - cell.dy * sin;
+            const py = ast.y + cell.dx * sin + cell.dy * cos;
+            const c = Math.floor(px / CELL);
+            const r = Math.floor(py / CELL);
+            if (c < 0 || c >= cols || r < 0 || r >= rows) continue;
+            const x = c * CELL;
+            const y = r * CELL;
+            ctx.clearRect(x, y, CELL, CELL);
+            ctx.fillStyle = `rgba(${ASTEROID_COLOR}, ${cell.alpha})`;
+            ctx.fillText(cell.ch, x + CELL / 2, y + CELL / 2);
+          }
+        }
+      }
+
+      // ── Explosions: white-hot core flash, then shards / cooling sparks /
+      // lingering smoke scattering outward ──
+      for (let i = flashes.length - 1; i >= 0; i--) {
+        if (t - flashes[i].start >= FLASH_LIFE) flashes.splice(i, 1);
+      }
+      ctx.font = BASE_FONT;
+      for (const fl of flashes) {
+        const k = 1 - (t - fl.start) / FLASH_LIFE; // 1 → 0 over the flash
+        const radius = CELL * (1 + (1 - k) * 2.2); // grows as it dims
+        const reach = Math.ceil(radius / CELL);
+        const c0 = Math.floor(fl.x / CELL);
+        const r0 = Math.floor(fl.y / CELL);
+        for (let r = r0 - reach; r <= r0 + reach; r++) {
+          for (let c = c0 - reach; c <= c0 + reach; c++) {
+            if (c < 0 || c >= cols || r < 0 || r >= rows) continue;
+            const d = Math.hypot(c * CELL + CELL / 2 - fl.x, r * CELL + CELL / 2 - fl.y);
+            if (d > radius) continue;
+            const x = c * CELL;
+            const y = r * CELL;
+            ctx.clearRect(x, y, CELL, CELL);
+            ctx.fillStyle = `rgba(${FLASH_COLOR}, ${0.95 * k})`;
+            ctx.fillText("#", x + CELL / 2, y + CELL / 2);
+          }
+        }
+      }
+      if (debris.length) {
+        for (let i = debris.length - 1; i >= 0; i--) {
+          const p = debris[i];
+          const age = t - p.start;
+          if (age >= p.life) {
+            debris.splice(i, 1);
+            continue;
+          }
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          const c = Math.floor(p.x / CELL);
+          const r = Math.floor(p.y / CELL);
+          if (c < 0 || c >= cols || r < 0 || r >= rows) continue;
+          const fade = 1 - age / p.life;
+          let ch = p.ch;
+          let color = SHARD_COLOR;
+          let alpha = 0.95 * fade;
+          if (p.kind === "shard") {
+            // Shards grind down as they tumble away
+            if (fade < 0.35) ch = ".";
+            else if (fade < 0.7 && p.ch === "#") ch = "o";
+          } else if (p.kind === "spark") {
+            color =
+              fade > 0.66 ? SPARK_HOT_COLOR : fade > 0.33 ? EXPLOSION_COLOR : SPARK_COOL_COLOR;
+            ch = fade > 0.5 ? "*" : "+";
+            alpha = 0.95 * fade;
+            // Hot sparks seed the fire grid, leaving embers that cool in their wake
+            const fi = r * cols + c;
+            if (fade * 0.45 > fire[fi]) fire[fi] = fade * 0.45;
+          } else {
+            color = SMOKE_COLOR;
+            ch = fade > 0.5 ? "," : ".";
+            alpha = 0.4 * fade;
+          }
+          const x = c * CELL;
+          const y = r * CELL;
+          ctx.clearRect(x, y, CELL, CELL);
+          ctx.fillStyle = `rgba(${color}, ${alpha})`;
+          ctx.fillText(ch, x + CELL / 2, y + CELL / 2);
+        }
+      }
+
       // ── Company shapes as colored '.' cells ──
       const active = activeRef.current;
       let newHovered: string | null = null;
@@ -698,7 +1036,7 @@ export default function AsciiBackground({
       window.removeEventListener("mousedown", handleClick);
       document.documentElement.removeEventListener("mouseleave", handleLeave);
     };
-  }, [prefersReducedMotion, showCompanies]);
+  }, [prefersReducedMotion, showCompanies, asteroids]);
 
   return (
     <canvas
@@ -707,4 +1045,7 @@ export default function AsciiBackground({
       className="pointer-events-none absolute inset-0 z-0 hidden h-full w-full md:block"
     />
   );
-}
+  }
+);
+
+export default AsciiBackground;

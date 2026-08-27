@@ -80,7 +80,10 @@ export default function Terminal() {
         out = HELP;
         break;
       case "whoami":
-        out = ["josh xie — applied ml engineer @ shopify, building things for fun"];
+        out = [
+          "josh xie — applied ml engineer @ shopify, building things for fun",
+          "check the contact page to reach out!",
+        ];
         break;
       case "ls":
         out = ["about/  projects/  contact/  experience.log"];
